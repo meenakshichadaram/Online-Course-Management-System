@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Browse Courses — OCMS{% endblock %}
+
+{% block content %}
+<div style="min-height: calc(100vh - 60px);">
+
+  <!-- Hero Banner -->
+  <div style="background: linear-gradient(135deg, var(--bg-2) 0%, #1a2238 100%); border-bottom: 1px solid var(--border); padding: 48px 0;">
+    <div class="container">
+      <div class="animate-fade-up" style="max-width:600px;">
+        <h1 style="margin-bottom:12px;">Explore Our <span style="color:var(--accent);">Courses</span></h1>
+        <p style="font-size:16px; margin-bottom:28px;">Master new skills with expert-led courses. Learn at your own pace.</p>
+        <div class="search-bar" style="max-width:480px;">
+          <span class="icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="Search courses, instructors, topics..." oninput="filterCourses()" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container" style="padding-top:32px; padding-bottom:48px;">
+    <div style="display:grid; grid-template-columns:220px 1fr; gap:28px; align-items:start;">
+
+      <!-- Filters Sidebar -->
+      <aside class="animate-fade-up-1">
+        <div class="card-flat" style="padding:20px; position:sticky; top:80px;">
+          <h4 style="margin-bottom:16px;">Filters</h4>
+
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select class="form-control" id="categoryFilter" onchange="filterCourses()">
+              <option value="">All Categories</option>
+              {% for category in categories %}
+                <option value="{{ category.slug }}">{{ category.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Level</label>
+            <select class="form-control" id="levelFilter" onchange="filterCourses()">
+              <option value="">All Levels</option>
+              <option value="Beginner">Beginner</option>
+              <option value="Intermediate">Intermediate</option>
+              <option value="Advanced">Advanced</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Price</label>
+            <select class="form-control" id="priceFilter" onchange="filterCourses()">
+              <option value="">Any Price</option>
+              <option value="free">Free</option>
+              <option value="paid">Paid</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Sort By</label>
+            <select class="form-control" id="sortFilter" onchange="filterCourses()">
+              <option value="newest">Newest</option>
+              <option value="popular">Most Popular</option>
+              <option value="price_asc">Price: Low → High</option>
+              <option value="price_desc">Price: High → Low</option>
+            </select>
+          </div>
+
+          <button class="btn btn-secondary w-full btn-sm mt-8" onclick="resetFilters()">Clear Filters</button>
+        </div>
+      </aside>
+
+      <!-- Course Grid -->
+      <div class="animate-fade-up-2">
+        <!-- Results Bar -->
+        <div class="flex-between mb-20">
+          <span style="font-size:14px; color:var(--text-muted);">
+            Showing <strong style="color:var(--text);" id="courseCount">{{ courses.count }}</strong> courses
+          </span>
+        </div>
+
+        <div class="grid-3" id="courseGrid">
+          {% for course in courses %}
+          <div class="course-card"
+            data-title="{{ course.title|lower }}"
+            data-instructor="{{ course.instructor.full_name|lower }}"
+            data-category="{{ course.category.slug }}"
+            data-level="{{ course.level }}"
+            data-price="{{ course.price }}">
+
+            <div class="course-thumb">
+              <div class="course-thumb-inner">
+                {% if course.level == 'Beginner' %}🌱
+                {% elif course.level == 'Intermediate' %}⚡
+                {% else %}🔥{% endif %}
+              </div>
+              <span class="badge {% if course.price == 0 %}badge-success{% else %}badge-accent{% endif %}">
+                {% if course.price == 0 %}Free{% else %}₹{{ course.price }}{% endif %}
+              </span>
+            </div>
+
+            <div class="course-body">
+              <div class="course-meta">
+                <span class="badge badge-neutral">{{ course.category.name }}</span>
+                <span class="badge badge-info">{{ course.level }}</span>
+              </div>
+              <div class="course-title">{{ course.title }}</div>
+              <div class="course-meta">
+                <span class="course-meta-item">👤 {{ course.instructor.full_name }}</span>
+                <span class="course-meta-item">📖 {{ course.modules.count }} modules</span>
+              </div>
+              {% if course.avg_rating %}
+              <div class="stars">
+                {% for i in "12345" %}
+                  <span class="star {% if forloop.counter > course.avg_rating %}empty{% endif %}">★</span>
+                {% endfor %}
+                <span class="text-xs text-muted" style="margin-left:4px;">({{ course.review_count }})</span>
+              </div>
+              {% endif %}
+            </div>
+
+            <div class="course-footer">
+              <span class="course-price {% if course.price == 0 %}free{% endif %}">
+                {% if course.price == 0 %}Free{% else %}₹{{ course.price }}{% endif %}
+              </span>
+              <a href="/courses/{{ course.id }}/" class="btn btn-outline btn-sm">View Course</a>
+            </div>
+          </div>
+          {% empty %}
+          <div style="grid-column:1/-1; text-align:center; padding:60px; color:var(--text-dim);">
+            <div style="font-size:3rem; margin-bottom:16px;">🔍</div>
+            <h4>No courses found</h4>
+            <p class="text-sm mt-8">Try adjusting your filters or search query.</p>
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if courses.has_other_pages %}
+        <div class="pagination">
+          {% if courses.has_previous %}
+            <a href="?page={{ courses.previous_page_number }}" class="page-btn">‹</a>
+          {% else %}
+            <button class="page-btn" disabled>‹</button>
+          {% endif %}
+
+          {% for num in courses.paginator.page_range %}
+            {% if courses.number == num %}
+              <button class="page-btn active">{{ num }}</button>
+            {% elif num > courses.number|add:'-3' and num < courses.number|add:'3' %}
+              <a href="?page={{ num }}" class="page-btn">{{ num }}</a>
+            {% endif %}
+          {% endfor %}
+
+          {% if courses.has_next %}
+            <a href="?page={{ courses.next_page_number }}" class="page-btn">›</a>
+          {% else %}
+            <button class="page-btn" disabled>›</button>
+          {% endif %}
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function filterCourses() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const category = document.getElementById('categoryFilter').value;
+    const level = document.getElementById('levelFilter').value;
+    const price = document.getElementById('priceFilter').value;
+    const cards = document.querySelectorAll('.course-card');
+    let visible = 0;
+
+    cards.forEach(card => {
+      const titleMatch = card.dataset.title.includes(search) || card.dataset.instructor.includes(search);
+      const catMatch = !category || card.dataset.category === category;
+      const levelMatch = !level || card.dataset.level === level;
+      const priceVal = parseFloat(card.dataset.price);
+      const priceMatch = !price ||
+        (price === 'free' && priceVal === 0) ||
+        (price === 'paid' && priceVal > 0);
+
+      if (titleMatch && catMatch && levelMatch && priceMatch) {
+        card.style.display = '';
+        visible++;
+      } else {
+        card.style.display = 'none';
+      }
+    });
+
+    document.getElementById('courseCount').textContent = visible;
+  }
+
+  function resetFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('categoryFilter').value = '';
+    document.getElementById('levelFilter').value = '';
+    document.getElementById('priceFilter').value = '';
+    filterCourses();
+  }
+</script>
+{% endblock %}

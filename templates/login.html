@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — OCMS</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+</head>
+<body>
+
+<div class="auth-page">
+
+  <!-- Left Panel -->
+  <div class="auth-left">
+    <div>
+      <div class="navbar-brand" style="font-size:1.6rem; margin-bottom:48px;">
+        <span style="color:var(--accent);">▣</span> OC<span style="color:var(--accent);">MS</span>
+      </div>
+      <div class="auth-quote animate-fade-up">
+        Learn without limits.<br/>
+        Teach with <em>purpose.</em><br/>
+        Grow <em>together.</em>
+      </div>
+    </div>
+    <div class="auth-features animate-fade-up-2">
+      <div class="auth-feature"><div class="auth-feature-dot"></div> JWT-secured access for all roles</div>
+      <div class="auth-feature"><div class="auth-feature-dot"></div> Redis-cached high-performance APIs</div>
+      <div class="auth-feature"><div class="auth-feature-dot"></div> Track progress across all your courses</div>
+      <div class="auth-feature"><div class="auth-feature-dot"></div> Instructor tools & admin analytics</div>
+    </div>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="auth-right">
+    <div class="auth-box animate-fade-up">
+
+      <!-- Tab Switch -->
+      <div class="tabs mb-32" id="authTabs">
+        <button class="tab-btn active" onclick="switchTab('login')">Sign In</button>
+        <button class="tab-btn" onclick="switchTab('register')">Register</button>
+      </div>
+
+      <!-- Error / Success Message -->
+      <div id="authMessage" class="hidden" style="margin-bottom:16px;"></div>
+
+      <!-- LOGIN FORM -->
+      <div id="loginPanel">
+        <h1>Welcome back</h1>
+        <p class="subtitle" style="color:var(--text-muted); font-size:14px; margin-bottom:28px;">
+          Sign in to continue your learning journey
+        </p>
+
+        <div class="form-group">
+          <label class="form-label">Email address</label>
+          <input type="email" id="loginEmail" class="form-control" placeholder="you@example.com" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" id="loginPassword" class="form-control" placeholder="Your password" required />
+        </div>
+
+        <div class="flex-between mb-24" style="font-size:13px;">
+          <label style="display:flex; align-items:center; gap:7px; cursor:pointer; color:var(--text-muted);">
+            <input type="checkbox" id="rememberMe" style="accent-color:var(--accent);"> Remember me
+          </label>
+          <a href="/auth/forgot-password/" style="color:var(--text-muted);">Forgot password?</a>
+        </div>
+
+        <button onclick="handleLogin()" id="loginBtn" class="btn btn-primary w-full btn-lg">
+          Sign In
+        </button>
+
+        <div class="mt-24 text-center text-sm" style="color:var(--text-dim);">
+          Don't have an account?
+          <a href="#" onclick="switchTab('register')" style="color:var(--accent); font-weight:600;">Create one free</a>
+        </div>
+      </div>
+
+      <!-- REGISTER FORM -->
+      <div id="registerPanel" class="hidden">
+        <h1>Create account</h1>
+        <p class="subtitle" style="color:var(--text-muted); font-size:14px; margin-bottom:28px;">
+          Join OCMS as a student or instructor
+        </p>
+
+        <div class="form-group">
+          <label class="form-label">Full name</label>
+          <input type="text" id="regName" class="form-control" placeholder="John Doe" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Email address</label>
+          <input type="email" id="regEmail" class="form-control" placeholder="you@example.com" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Role</label>
+          <select id="regRole" class="form-control" required>
+            <option value="">— Select your role —</option>
+            <option value="STUDENT">Student</option>
+            <option value="INSTRUCTOR">Instructor</option>
+          </select>
+          <div class="form-hint">Admins are created by platform administrators.</div>
+        </div>
+
+        <div class="grid-2" style="gap:14px;">
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" id="regPassword" class="form-control" placeholder="Min 8 chars" required minlength="8" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Confirm password</label>
+            <input type="password" id="regPasswordConfirm" class="form-control" placeholder="Repeat password" required />
+          </div>
+        </div>
+
+        <button onclick="handleRegister()" id="registerBtn" class="btn btn-primary w-full btn-lg">
+          Create Account
+        </button>
+
+        <div class="mt-24 text-center text-sm" style="color:var(--text-dim);">
+          Already have an account?
+          <a href="#" onclick="switchTab('login')" style="color:var(--accent); font-weight:600;">Sign in</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Tab Switch ──
+  function switchTab(tab) {
+    const loginPanel = document.getElementById('loginPanel');
+    const registerPanel = document.getElementById('registerPanel');
+    const btns = document.querySelectorAll('.tab-btn');
+    clearMessage();
+
+    if (tab === 'login') {
+      loginPanel.classList.remove('hidden');
+      registerPanel.classList.add('hidden');
+      btns[0].classList.add('active');
+      btns[1].classList.remove('active');
+      document.title = 'Login — OCMS';
+    } else {
+      loginPanel.classList.add('hidden');
+      registerPanel.classList.remove('hidden');
+      btns[0].classList.remove('active');
+      btns[1].classList.add('active');
+      document.title = 'Register — OCMS';
+    }
+  }
+
+  // ── Show Message ──
+  function showMessage(msg, type = 'danger') {
+    const el = document.getElementById('authMessage');
+    el.className = `alert alert-${type}`;
+    el.innerHTML = `<span>${type === 'success' ? '✓' : '✕'}</span> ${msg}`;
+    el.classList.remove('hidden');
+  }
+
+  function clearMessage() {
+    const el = document.getElementById('authMessage');
+    el.className = 'hidden';
+    el.innerHTML = '';
+  }
+
+  // ── Set Button Loading ──
+  function setLoading(btnId, loading) {
+    const btn = document.getElementById(btnId);
+    btn.disabled = loading;
+    btn.textContent = loading ? 'Please wait...' : (btnId === 'loginBtn' ? 'Sign In' : 'Create Account');
+  }
+
+  // ── Redirect by Role ──
+  function redirectByRole(role) {
+    if (role === 'STUDENT')    window.location.href = '/dashboard/';
+    else if (role === 'INSTRUCTOR') window.location.href = '/instructor/';
+    else if (role === 'ADMIN')  window.location.href = '/admin-dashboard/';
+    else window.location.href = '/';
+  }
+
+  // ── LOGIN ──
+  async function handleLogin() {
+    clearMessage();
+    const email    = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+
+    if (!email || !password) {
+      showMessage('Please fill in all fields.');
+      return;
+    }
+
+    setLoading('loginBtn', true);
+
+    try {
+      const res = await fetch('/api/auth/login/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        // Store JWT tokens
+        localStorage.setItem('access_token', data.access);
+        localStorage.setItem('refresh_token', data.refresh);
+        localStorage.setItem('user_role', data.role);
+        localStorage.setItem('user_name', data.full_name);
+
+        showMessage('Login successful! Redirecting...', 'success');
+        setTimeout(() => redirectByRole(data.role), 800);
+      } else {
+        const errMsg = data.detail || data.non_field_errors?.[0] || 'Invalid email or password.';
+        showMessage(errMsg);
+      }
+    } catch (err) {
+      showMessage('Network error. Please try again.');
+    } finally {
+      setLoading('loginBtn', false);
+    }
+  }
+
+  // ── REGISTER ──
+  async function handleRegister() {
+    clearMessage();
+    const full_name        = document.getElementById('regName').value.trim();
+    const email            = document.getElementById('regEmail').value.trim();
+    const role             = document.getElementById('regRole').value;
+    const password         = document.getElementById('regPassword').value;
+    const passwordConfirm  = document.getElementById('regPasswordConfirm').value;
+
+    // Validation
+    if (!full_name || !email || !role || !password || !passwordConfirm) {
+      showMessage('Please fill in all fields.');
+      return;
+    }
+    if (password !== passwordConfirm) {
+      showMessage('Passwords do not match.');
+      return;
+    }
+    if (password.length < 8) {
+      showMessage('Password must be at least 8 characters.');
+      return;
+    }
+
+    setLoading('registerBtn', true);
+
+    try {
+      const res = await fetch('/api/auth/register/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ full_name, email, role, password })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        // Store JWT tokens if returned on register
+        if (data.access) {
+          localStorage.setItem('access_token', data.access);
+          localStorage.setItem('refresh_token', data.refresh);
+          localStorage.setItem('user_role', data.role);
+          localStorage.setItem('user_name', data.full_name);
+          showMessage('Account created! Redirecting...', 'success');
+          setTimeout(() => redirectByRole(data.role), 800);
+        } else {
+          // If register doesn't return token, switch to login
+          showMessage('Account created successfully! Please sign in.', 'success');
+          setTimeout(() => switchTab('login'), 1200);
+        }
+      } else {
+        const errMsg = data.email?.[0] || data.detail || data.non_field_errors?.[0] || 'Registration failed.';
+        showMessage(errMsg);
+      }
+    } catch (err) {
+      showMessage('Network error. Please try again.');
+    } finally {
+      setLoading('registerBtn', false);
+    }
+  }
+
+  // ── Enter Key Support ──
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const loginPanel = document.getElementById('loginPanel');
+      if (!loginPanel.classList.contains('hidden')) handleLogin();
+      else handleRegister();
+    }
+  });
+
+  // ── Auto switch tab from URL ──
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('tab') === 'register') switchTab('register');
+
+  // ── If already logged in, redirect ──
+  const token = localStorage.getItem('access_token');
+  const role  = localStorage.getItem('user_role');
+  if (token && role) redirectByRole(role);
+</script>
+</body>
+</html>

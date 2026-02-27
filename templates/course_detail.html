@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ course.title }} — OCMS{% endblock %}
+
+{% block content %}
+<div style="min-height: calc(100vh - 60px);">
+
+  <!-- Course Hero -->
+  <div style="background: linear-gradient(135deg, var(--bg-2) 0%, #1a2238 100%); border-bottom: 1px solid var(--border); padding: 48px 0;">
+    <div class="container">
+      <div style="display:grid; grid-template-columns:1fr 340px; gap:40px; align-items:start;">
+
+        <!-- Left Info -->
+        <div class="animate-fade-up">
+          <div class="flex gap-8 mb-16">
+            <span class="badge badge-neutral">{{ course.category.name }}</span>
+            <span class="badge badge-info">{{ course.level }}</span>
+            {% if course.is_published %}
+              <span class="badge badge-success">Published</span>
+            {% endif %}
+          </div>
+
+          <h1 style="font-size:2rem; margin-bottom:14px;">{{ course.title }}</h1>
+          <p style="font-size:15px; color:var(--text-muted); margin-bottom:20px; line-height:1.7;">
+            {{ course.description }}
+          </p>
+
+          <div class="flex gap-24 mb-16">
+            {% if course.avg_rating %}
+            <div style="display:flex; align-items:center; gap:8px;">
+              <strong style="color:var(--accent); font-family:var(--font-mono);">{{ course.avg_rating|floatformat:1 }}</strong>
+              <div class="stars">
+                {% for i in "12345" %}
+                  <span class="star {% if forloop.counter > course.avg_rating %}empty{% endif %}">★</span>
+                {% endfor %}
+              </div>
+              <span class="text-sm text-muted">({{ course.review_count }} reviews)</span>
+            </div>
+            {% endif %}
+            <span class="text-sm text-muted">👤 {{ enrollment_count }} students enrolled</span>
+            <span class="text-sm text-muted">📖 {{ total_lectures }} lectures</span>
+          </div>
+
+          <div class="flex gap-8" style="align-items:center;">
+            <div class="avatar">{{ course.instructor.full_name|slice:":1"|upper }}</div>
+            <div>
+              <div style="font-size:13px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em;">Instructor</div>
+              <div style="font-size:14px; font-weight:600;">{{ course.instructor.full_name }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Enroll Card -->
+        <div class="animate-fade-up-1">
+          <div class="card" style="position:sticky; top:80px;">
+            <div style="text-align:center; padding:8px 0 20px 0; border-bottom:1px solid var(--border); margin-bottom:20px;">
+              <div style="font-size:2.4rem; margin-bottom:4px;">
+                {% if course.level == 'Beginner' %}🌱{% elif course.level == 'Intermediate' %}⚡{% else %}🔥{% endif %}
+              </div>
+              <div class="course-price {% if course.price == 0 %}free{% endif %}" style="font-size:1.8rem;">
+                {% if course.price == 0 %}Free{% else %}₹{{ course.price }}{% endif %}
+              </div>
+            </div>
+
+            {% if is_enrolled %}
+              <div class="alert alert-success mb-16">✓ You're enrolled in this course</div>
+              <a href="/course/{{ course.id }}/progress/" class="btn btn-primary w-full btn-lg">Continue Learning →</a>
+            {% elif user.is_authenticated and user.role == 'STUDENT' %}
+              <form method="POST" action="/api/enroll/">
+                {% csrf_token %}
+                <input type="hidden" name="course_id" value="{{ course.id }}" />
+                <button type="submit" class="btn btn-primary w-full btn-lg">
+                  {% if course.price == 0 %}Enroll for Free{% else %}Enroll Now{% endif %}
+                </button>
+              </form>
+            {% elif not user.is_authenticated %}
+              <a href="/auth/login/?next=/courses/{{ course.id }}/" class="btn btn-primary w-full btn-lg">Login to Enroll</a>
+            {% endif %}
+
+            <div class="divider"></div>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              <div class="flex-between text-sm">
+                <span style="color:var(--text-muted);">Total Modules</span>
+                <strong>{{ course.modules.count }}</strong>
+              </div>
+              <div class="flex-between text-sm">
+                <span style="color:var(--text-muted);">Total Lectures</span>
+                <strong>{{ total_lectures }}</strong>
+              </div>
+              <div class="flex-between text-sm">
+                <span style="color:var(--text-muted);">Level</span>
+                <strong>{{ course.level }}</strong>
+              </div>
+              <div class="flex-between text-sm">
+                <span style="color:var(--text-muted);">Category</span>
+                <strong>{{ course.category.name }}</strong>
+              </div>
+              <div class="flex-between text-sm">
+                <span style="color:var(--text-muted);">Certificate</span>
+                <strong style="color:var(--success);">✓ Yes</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Course Content -->
+  <div class="container" style="padding-top:40px; padding-bottom:60px;">
+    <div style="display:grid; grid-template-columns:1fr 340px; gap:40px; align-items:start;">
+
+      <!-- Left: Modules & Lectures -->
+      <div>
+
+        <!-- Curriculum -->
+        <div class="animate-fade-up mb-32">
+          <h3 class="mb-16">Course Curriculum</h3>
+          <div style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">
+            {{ course.modules.count }} modules · {{ total_lectures }} lectures
+          </div>
+
+          {% for module in course.modules.all %}
+          <div style="margin-bottom:8px;">
+            <div class="module-header" onclick="toggleModule(this)">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-family:var(--font-mono); font-size:12px; color:var(--text-dim);">
+                  {{ forloop.counter|stringformat:"02d" }}
+                </span>
+                <h4>{{ module.title }}</h4>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:12px; color:var(--text-muted);">{{ module.lectures.count }} lectures</span>
+                <span class="toggle-icon" style="color:var(--text-dim); transition:transform 0.2s;">▼</span>
+              </div>
+            </div>
+
+            <div class="module-content" {% if not forloop.first %}style="display:none;"{% endif %}>
+              <ul class="lecture-list">
+                {% for lecture in module.lectures.all %}
+                <li class="lecture-item {% if not is_enrolled and not forloop.first %}locked{% endif %}">
+                  {% if is_enrolled %}
+                    {% if lecture.id in completed_lecture_ids %}
+                      <span class="lecture-icon completed">✓</span>
+                    {% else %}
+                      <span class="lecture-icon">▶</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="lecture-icon">{% if forloop.first %}▶{% else %}🔒{% endif %}</span>
+                  {% endif %}
+                  <span class="lecture-title">{{ lecture.title }}</span>
+                  {% if lecture.duration %}
+                  <span class="lecture-duration">
+                    {{ lecture.duration|floatformat:0 }}s
+                  </span>
+                  {% endif %}
+                </li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+          {% empty %}
+          <div class="card-flat text-center" style="padding:40px; color:var(--text-dim);">
+            No modules added yet.
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- Reviews Section -->
+        <div class="animate-fade-up-2">
+          <div class="flex-between mb-16">
+            <h3>Student Reviews</h3>
+            {% if is_enrolled and not user_review %}
+              <button class="btn btn-outline btn-sm" onclick="document.getElementById('reviewForm').classList.toggle('hidden')">
+                + Write a Review
+              </button>
+            {% endif %}
+          </div>
+
+          <!-- Write Review Form -->
+          <div id="reviewForm" class="card mb-24 hidden">
+            <h4 style="margin-bottom:16px;">Your Review</h4>
+            <form method="POST" action="/api/courses/{{ course.id }}/reviews/">
+              {% csrf_token %}
+              <div class="form-group">
+                <label class="form-label">Rating</label>
+                <div style="display:flex; gap:8px; margin-bottom:4px;" id="starPicker">
+                  {% for i in "12345" %}
+                  <span onclick="setRating({{ forloop.counter }})"
+                    style="font-size:1.8rem; cursor:pointer; color:var(--border); transition:color 0.1s;"
+                    class="star-pick" data-val="{{ forloop.counter }}">★</span>
+                  {% endfor %}
+                </div>
+                <input type="hidden" name="rating" id="ratingInput" value="5" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Comment</label>
+                <textarea name="comment" class="form-control" placeholder="Share what you think about this course..." required></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm">Submit Review</button>
+            </form>
+          </div>
+
+          <!-- Reviews List -->
+          {% for review in reviews %}
+          <div class="card mb-16">
+            <div class="flex gap-12" style="margin-bottom:10px;">
+              <div class="avatar">{{ review.student.full_name|slice:":1"|upper }}</div>
+              <div style="flex:1;">
+                <div class="flex-between">
+                  <strong style="font-size:14px;">{{ review.student.full_name }}</strong>
+                  <span class="text-xs font-mono text-muted">{{ review.created_at|date:"d M Y" }}</span>
+                </div>
+                <div class="stars mt-8">
+                  {% for i in "12345" %}
+                    <span class="star {% if forloop.counter > review.rating %}empty{% endif %}">★</span>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+            <p style="font-size:14px; color:var(--text-muted);">{{ review.comment }}</p>
+          </div>
+          {% empty %}
+          <div style="text-align:center; padding:40px; color:var(--text-dim); font-size:14px;">
+            No reviews yet. Be the first!
+          </div>
+          {% endfor %}
+        </div>
+
+      </div>
+
+      <!-- Right: Progress (if enrolled) -->
+      {% if is_enrolled %}
+      <div class="animate-fade-up-1">
+        <div class="card" style="position:sticky; top:80px;">
+          <h4 style="margin-bottom:16px;">Your Progress</h4>
+          <div class="progress-label">
+            <span>Overall</span>
+            <strong>{{ progress_percent|default:"0" }}%</strong>
+          </div>
+          <div class="progress-wrap mb-20">
+            <div class="progress-bar" style="width:{{ progress_percent|default:"0" }}%;"></div>
+          </div>
+
+          <div class="flex-between text-sm mb-12">
+            <span class="text-muted">Completed</span>
+            <strong>{{ completed_lectures }} / {{ total_lectures }}</strong>
+          </div>
+
+          {% if progress_percent == 100 %}
+            <div class="alert alert-success">🎉 Course Completed!</div>
+          {% endif %}
+
+          <a href="#curriculum" class="btn btn-primary w-full btn-sm">Continue Learning</a>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+
+<script>
+  function toggleModule(header) {
+    const content = header.nextElementSibling;
+    const icon = header.querySelector('.toggle-icon');
+    const isOpen = content.style.display !== 'none';
+    content.style.display = isOpen ? 'none' : 'block';
+    icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+  }
+
+  function setRating(val) {
+    document.getElementById('ratingInput').value = val;
+    document.querySelectorAll('.star-pick').forEach(star => {
+      star.style.color = parseInt(star.dataset.val) <= val ? 'var(--accent)' : 'var(--border)';
+    });
+  }
+  // Init star picker
+  setRating(5);
+</script>
+{% endblock %}

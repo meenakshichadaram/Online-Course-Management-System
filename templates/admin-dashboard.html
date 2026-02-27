@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Admin Analytics — OCMS{% endblock %}
+
+{% block content %}
+<div class="layout-sidebar">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div style="padding:12px 10px; margin-bottom:16px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div class="avatar avatar-lg" style="background:rgba(248,81,73,0.12); border-color:#f85149; color:#f85149;">
+          {{ user.full_name|slice:":1"|upper }}
+        </div>
+        <div>
+          <div style="font-weight:600; font-size:14px; color:var(--text);">{{ user.full_name }}</div>
+          <div class="badge badge-danger" style="margin-top:4px;">Admin</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Platform</div>
+      <a href="/admin-dashboard/" class="sidebar-link active">
+        <span class="icon">📊</span> Analytics
+      </a>
+      <a href="/admin-dashboard/users/" class="sidebar-link">
+        <span class="icon">👥</span> Users
+      </a>
+      <a href="/admin-dashboard/courses/" class="sidebar-link">
+        <span class="icon">📚</span> All Courses
+      </a>
+      <a href="/admin-dashboard/enrollments/" class="sidebar-link">
+        <span class="icon">📋</span> Enrollments
+      </a>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">System</div>
+      <a href="/admin/" class="sidebar-link">
+        <span class="icon">⚙</span> Django Admin
+      </a>
+      <a href="/auth/logout/" class="sidebar-link">
+        <span class="icon">⎋</span> Logout
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <div class="flex-between page-header animate-fade-up">
+      <div>
+        <h2>Platform Analytics</h2>
+        <p>Real-time overview of the OCMS platform. Redis-cached metrics.</p>
+      </div>
+      <div class="flex gap-8">
+        <div style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-dim);">
+          <span style="width:7px; height:7px; background:var(--success); border-radius:50%; animation:pulse 2s infinite;"></span>
+          Cache live
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="location.reload()">↻ Refresh</button>
+      </div>
+    </div>
+
+    <!-- Platform Stats -->
+    <div class="grid-4 mb-32 animate-fade-up-1">
+      <div class="stat-card accent">
+        <div class="stat-icon">👥</div>
+        <div class="stat-value">{{ stats.total_users|default:"0" }}</div>
+        <div class="stat-label">Total Users</div>
+      </div>
+      <div class="stat-card success">
+        <div class="stat-icon">📚</div>
+        <div class="stat-value">{{ stats.total_courses|default:"0" }}</div>
+        <div class="stat-label">Total Courses</div>
+      </div>
+      <div class="stat-card info">
+        <div class="stat-icon">📋</div>
+        <div class="stat-value">{{ stats.total_enrollments|default:"0" }}</div>
+        <div class="stat-label">Enrollments</div>
+      </div>
+      <div class="stat-card danger">
+        <div class="stat-icon">⭐</div>
+        <div class="stat-value">{{ stats.total_reviews|default:"0" }}</div>
+        <div class="stat-label">Reviews</div>
+      </div>
+    </div>
+
+    <!-- Role Breakdown + Top Courses -->
+    <div class="grid-2 mb-32 animate-fade-up-2">
+
+      <!-- Role Breakdown -->
+      <div class="card">
+        <h3 class="mb-20">User Breakdown</h3>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+
+          <div>
+            <div class="progress-label">
+              <span>Students</span>
+              <strong>{{ stats.student_count|default:"0" }}</strong>
+            </div>
+            <div class="progress-wrap">
+              <div class="progress-bar" style="width:{% if stats.total_users %}{% widthratio stats.student_count stats.total_users 100 %}{% else %}0{% endif %}%;"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="progress-label">
+              <span>Instructors</span>
+              <strong style="color:var(--accent);">{{ stats.instructor_count|default:"0" }}</strong>
+            </div>
+            <div class="progress-wrap">
+              <div class="progress-bar" style="background:var(--info); width:{% if stats.total_users %}{% widthratio stats.instructor_count stats.total_users 100 %}{% else %}0{% endif %}%;"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="progress-label">
+              <span>Admins</span>
+              <strong style="color:var(--danger);">{{ stats.admin_count|default:"0" }}</strong>
+            </div>
+            <div class="progress-wrap">
+              <div class="progress-bar" style="background:var(--danger); width:{% if stats.total_users %}{% widthratio stats.admin_count stats.total_users 100 %}{% else %}0{% endif %}%;"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="divider"></div>
+        <div class="grid-3 text-center">
+          <div>
+            <div style="font-size:1.4rem; font-weight:700; font-family:var(--font-mono);">{{ stats.completion_rate|default:"0" }}%</div>
+            <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em;">Completion Rate</div>
+          </div>
+          <div>
+            <div style="font-size:1.4rem; font-weight:700; font-family:var(--font-mono);">{{ stats.published_courses|default:"0" }}</div>
+            <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em;">Published</div>
+          </div>
+          <div>
+            <div style="font-size:1.4rem; font-weight:700; font-family:var(--font-mono);">{{ stats.avg_rating|default:"—" }}</div>
+            <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em;">Avg Rating</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Enrolled Courses (Redis sorted set) -->
+      <div class="card">
+        <div class="flex-between mb-20">
+          <h3>Top Courses</h3>
+          <span class="badge badge-accent">Redis Cached</span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          {% for course in top_courses %}
+          <div style="display:flex; align-items:center; gap:12px; padding:10px; background:var(--bg-3); border-radius:8px;">
+            <span style="font-family:var(--font-mono); font-size:1.2rem; font-weight:700; color:{% if forloop.counter == 1 %}var(--accent){% elif forloop.counter == 2 %}var(--text-muted){% else %}var(--text-dim){% endif %}; width:24px; text-align:center;">
+              {{ forloop.counter }}
+            </span>
+            <div style="flex:1;">
+              <div style="font-size:13px; font-weight:600; color:var(--text);">{{ course.title }}</div>
+              <div style="font-size:11px; color:var(--text-dim);">{{ course.instructor__full_name }}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:14px; font-weight:700; font-family:var(--font-mono); color:var(--accent);">{{ course.enrollment_count }}</div>
+              <div style="font-size:10px; color:var(--text-dim); text-transform:uppercase;">students</div>
+            </div>
+          </div>
+          {% empty %}
+          <div style="text-align:center; padding:32px; color:var(--text-dim);">No data available yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Recent Users Table -->
+    <div class="animate-fade-up-3 mb-32">
+      <div class="flex-between mb-16">
+        <h3>Recent Users</h3>
+        <a href="/admin-dashboard/users/" class="btn btn-secondary btn-sm">View All Users</a>
+      </div>
+      <div class="card-flat" style="padding:0;">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Joined</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in recent_users %}
+            <tr>
+              <td>
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <div class="avatar" style="width:30px; height:30px; font-size:11px;">{{ u.full_name|slice:":1"|upper }}</div>
+                  <span style="font-weight:600; color:var(--text);">{{ u.full_name }}</span>
+                </div>
+              </td>
+              <td class="font-mono text-sm">{{ u.email }}</td>
+              <td>
+                {% if u.role == 'ADMIN' %}
+                  <span class="badge badge-danger">Admin</span>
+                {% elif u.role == 'INSTRUCTOR' %}
+                  <span class="badge badge-accent">Instructor</span>
+                {% else %}
+                  <span class="badge badge-info">Student</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if u.is_active %}
+                  <span class="badge badge-success">Active</span>
+                {% else %}
+                  <span class="badge badge-neutral">Inactive</span>
+                {% endif %}
+              </td>
+              <td class="font-mono text-sm">{{ u.created_at|date:"d M Y" }}</td>
+              <td>
+                <a href="/admin-dashboard/users/{{ u.id }}/" class="btn btn-secondary btn-sm">View</a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" style="text-align:center; padding:32px; color:var(--text-dim);">No users found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Redis Cache Keys -->
+    <div class="animate-fade-up-4">
+      <h3 class="mb-16">Redis Cache Keys</h3>
+      <div class="grid-4">
+        {% for key_info in cache_keys %}
+        <div class="card-flat" style="padding:16px;">
+          <div class="font-mono text-xs text-muted mb-8">{{ key_info.key }}</div>
+          <div style="font-size:1.2rem; font-weight:700; color:var(--text);">{{ key_info.value }}</div>
+          <div class="text-xs text-muted mt-8">TTL: {{ key_info.ttl }}s</div>
+        </div>
+        {% empty %}
+        {% for item in redis_defaults %}
+        <div class="card-flat" style="padding:16px; opacity:0.55;">
+          <div class="font-mono text-xs text-muted mb-8">{{ item.key }}</div>
+          <div style="font-size:1rem; color:var(--text-dim);">—</div>
+          <div class="text-xs text-muted mt-8">Not cached yet</div>
+        </div>
+        {% endfor %}
+        {% endfor %}
+      </div>
+    </div>
+
+  </main>
+</div>
+{% endblock %}
